@@ -1,0 +1,312 @@
+services:
+
+
+  # =========================================================
+  # KURRENTDB
+  # =========================================================
+
+  kurrentdb.db:
+    image: docker.kurrent.io/kurrent-latest/kurrentdb:latest
+    container_name: kurrentdb
+    restart: always
+
+    environment:
+      KURRENTDB_CLUSTER_SIZE: 1
+      KURRENTDB_RUN_PROJECTIONS: All
+      KURRENTDB_START_STANDARD_PROJECTIONS: "true"
+      KURRENTDB_INSECURE: "true"
+      KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP: "true"
+
+    ports:
+      # KurrentDB HTTP / gRPC
+      - "2113:2113"
+
+    volumes:
+      - kurrentdb-volume-data:/var/lib/kurrentdb
+      - kurrentdb-volume-logs:/var/log/kurrentdb
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # MONGODB
+  # =========================================================
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGODB_DATABASE: products
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb_data_container:/data/db
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # ELASTICSEARCH
+  # =========================================================
+
+  node01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.1
+    container_name: node01
+    restart: always
+
+    environment:
+      node.name: node01
+      cluster.name: es-cluster-7
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms128m -Xmx128m"
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    volumes:
+      - es-data01:/usr/share/elasticsearch/data
+
+    ports:
+      - "9200:9200"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # KIBANA
+  # =========================================================
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.11.1
+    container_name: kibana
+    restart: always
+
+    environment:
+      ELASTICSEARCH_HOSTS: http://node01:9200
+
+    depends_on:
+      - node01
+
+    ports:
+      - "5601:5601"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # OTEL COLLECTOR
+  # =========================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.101.0
+    container_name: otel-collector
+    restart: always
+
+    command:
+      - "--config=/etc/otel-collector.yaml"
+
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+
+    ports:
+      # Host -> OTLP gRPC
+      - "4320:4317"
+
+      # Host -> OTLP HTTP
+      - "4321:4318"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # TEMPO
+  # =========================================================
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    container_name: tempo
+    restart: always
+
+    command:
+      - "-config.file=/etc/tempo.yaml"
+
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - ./tempo-data:/var/tempo
+
+    ports:
+      # Tempo HTTP API
+      - "3200:3200"
+
+      # OTLP gRPC
+      - "4317:4317"
+
+      # OTLP HTTP
+      - "4318:4318"
+
+      # Jaeger HTTP
+      - "14268:14268"
+
+      # Zipkin
+      - "9411:9411"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # PROMETHEUS
+  # =========================================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus-data:/prometheus
+
+    ports:
+      - "9090:9090"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # LOKI
+  # =========================================================
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    restart: always
+
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+
+    ports:
+      - "3100:3100"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # PROMTAIL
+  # =========================================================
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    restart: always
+
+    depends_on:
+      - loki
+
+    volumes:
+      - ./promtail.yaml:/etc/promtail/docker-config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    command:
+      - "-config.file=/etc/promtail/docker-config.yaml"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # GRAFANA
+  # =========================================================
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    restart: always
+
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - grafana-data:/var/lib/grafana
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      - microservices
+
+
+  # =========================================================
+  # NODE EXPORTER
+  # =========================================================
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: always
+
+    ports:
+      - "9101:9100"
+
+    networks:
+      - microservices
+
+
+# ===========================================================
+# VOLUMES
+# ===========================================================
+
+volumes:
+
+  kurrentdb-volume-data:
+
+  kurrentdb-volume-logs:
+
+  mongodb_data_container:
+
+  es-data01:
+
+  prometheus-data:
+
+  grafana-data:
+
+
+# ===========================================================
+# NETWORK
+# ===========================================================
+
+networks:
+
+  microservices:
+    name: microservices
+    driver: bridge
