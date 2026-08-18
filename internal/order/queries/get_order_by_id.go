@@ -3,10 +3,10 @@ package queries
 import (
 	"context"
 	"github.com/jackc/pgx/v4"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
+	otracer "go.opentelemetry.io/otel/trace"
 	"main/config"
 	"main/internal/mappers"
 	"main/internal/order/aggregate"
@@ -32,9 +32,12 @@ func NewGetOrderByIDHandler(log logger.Logger, cfg *config.Config, es es.Aggrega
 }
 
 func (q *GetOrderByIDHandler) Handle(ctx context.Context, t *trace.TracerProvider, query *GetOrderByIDQuery) (*models.OrderProjection, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "getOrderByIDHandler.Handle")
-	defer span.Finish()
-	span.LogFields(log.String("AggregateID", query.ID))
+	var span otracer.Span
+	tracer := t.Tracer("GetOrderByIDHandler Handle")
+
+	ctx, span = tracer.Start(ctx, "getOrderByIDHandler.Handle", otracer.WithSpanKind(otracer.SpanKindServer))
+	defer span.End()
+	span.SetAttributes(attribute.String("AggregateID", query.ID))
 
 	orderProjection, err := q.postgresRepo.GetById(ctx, t, query.ID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {

@@ -15,11 +15,11 @@ import (
 	"main/pkg/databases/postgres"
 	"main/pkg/es/store"
 	"main/pkg/eventstroredb"
-	"main/pkg/graceful_exit"
 	"main/pkg/logger"
 	"main/pkg/middlewares/trace"
 	"main/pkg/server"
 	"main/pkg/server/grpc"
+	"main/pkg/server/health_check"
 	"main/pkg/server/http"
 	"main/pkg/utils/common"
 	"os"
@@ -95,10 +95,10 @@ func main() {
 
 	httpServer := http.NewHttpServer(cfg, appLogger)
 	grpcServer := grpc.NewGrpcServer(cfg.GRPC.Port)
-	servers := server.NewServer(cfg, &ctx, appLogger, m, httpServer, grpcServer, orderService, metricsCounters, server.Handlers{
+	healthCheckServer := health_check.NewHealthCheckServer(ctx, cfg, appLogger, postgresDb, elasticClient)
+	servers := server.NewServer(ctx, cfg, appLogger, m, httpServer, grpcServer, healthCheckServer, orderService, metricsCounters, server.Handlers{
 		OrderHttpHandlers: orderHandlers,
 	})
 	servers.ListenAll()
 
-	graceful_exit.TerminateApp(ctx)
 }

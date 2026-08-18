@@ -271,7 +271,7 @@ func (s *OrderGrpcService) Search(ctx context.Context, req *orderService.SearchR
 
 	ctx, span = tracer.Start(ctx, "orderGrpcService.Search", otracer.WithSpanKind(otracer.SpanKindServer))
 	span.SetAttributes(attribute.String("req", req.String()))
-	s.metrics.ChangeAddressOrderGrpcRequests.Inc()
+	s.metrics.SearchOrderGrpcRequests.Inc()
 
 	query := queries.NewSearchOrdersQuery(req.GetSearchText(), utils.NewPaginationQuery(int(req.GetSize()), int(req.GetPage())))
 	/*

@@ -10,6 +10,7 @@ import (
 	"main/internal/order/domain/models"
 	v1 "main/internal/order/events/v1"
 	"main/pkg/es"
+	"time"
 )
 
 func (o *ElasticProjection) onOrderCreate(ctx context.Context, t *trace.TracerProvider, evt es.Event) error {
@@ -27,10 +28,11 @@ func (o *ElasticProjection) onOrderCreate(ctx context.Context, t *trace.TracerPr
 	}
 
 	op := &models.OrderProjection{
-		OrderID:      aggregate.GetOrderAggregateID(evt.AggregateID),
-		ShopItems:    eventData.ShopItems,
-		AccountEmail: eventData.AccountEmail,
-		TotalPrice:   aggregate.GetShopItemsTotalPrice(eventData.ShopItems),
+		OrderID:       aggregate.GetOrderAggregateID(evt.AggregateID),
+		ShopItems:     eventData.ShopItems,
+		AccountEmail:  eventData.AccountEmail,
+		TotalPrice:    aggregate.GetShopItemsTotalPrice(eventData.ShopItems),
+		DeliveredTime: time.Now(), //TODO: Timestamp keywordu ile kullanılacak
 	}
 
 	return o.elasticRepository.IndexOrder(ctx, t, op)
@@ -38,7 +40,7 @@ func (o *ElasticProjection) onOrderCreate(ctx context.Context, t *trace.TracerPr
 
 func (o *ElasticProjection) onOrderPaid(ctx context.Context, t *trace.TracerProvider, evt es.Event) error {
 	var span otracer.Span
-	tracer := t.Tracer("ElasticProjection onOrderPaid")
+	tracer := t.Tracer("ElasticProjection OnOrderPaid")
 
 	ctx, span = tracer.Start(ctx, "elasticProjection.onOrderPaid", otracer.WithSpanKind(otracer.SpanKindServer))
 	defer span.End()

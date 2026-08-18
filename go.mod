@@ -3,15 +3,14 @@ module main
 go 1.25.11
 
 require (
-	github.com/arsmn/fiber-swagger/v2 v2.31.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gofiber/fiber/v2 v2.32.0
+	github.com/google/martian v2.1.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/kurrent-io/KurrentDB-Client-Go v1.4.1
 	github.com/olivere/elastic/v7 v7.0.32
-	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/satori/go.uuid v1.2.0

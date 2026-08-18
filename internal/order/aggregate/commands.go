@@ -34,7 +34,7 @@ func (a *OrderAggregate) CreateOrder(ctx context.Context, t *trace.TracerProvide
 		return errors.Wrap(err, "NewOrderCreatedEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -66,7 +66,7 @@ func (a *OrderAggregate) PayOrder(ctx context.Context, t *trace.TracerProvider, 
 		return errors.Wrap(err, "NewOrderPaidEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -98,7 +98,7 @@ func (a *OrderAggregate) SubmitOrder(ctx context.Context, t *trace.TracerProvide
 		return errors.Wrap(err, "NewSubmitOrderEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -127,7 +127,7 @@ func (a *OrderAggregate) UpdateShoppingCart(ctx context.Context, t *trace.Tracer
 		return errors.Wrap(err, "NewShoppingCartUpdatedEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -156,7 +156,7 @@ func (a *OrderAggregate) CancelOrder(ctx context.Context, t *trace.TracerProvide
 		return errors.Wrap(err, "NewOrderCanceledEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -188,7 +188,7 @@ func (a *OrderAggregate) CompleteOrder(ctx context.Context, t *trace.TracerProvi
 		return errors.Wrap(err, "NewOrderCompletedEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}
@@ -214,7 +214,7 @@ func (a *OrderAggregate) ChangeDeliveryAddress(ctx context.Context, t *trace.Tra
 		return errors.Wrap(err, "NewDeliveryAddressChangedEvent")
 	}
 
-	if err := event.SetMetadata(grpc.InjectTraceContext(ctx)); err != nil {
+	if err := event.SetMetadata(grpc.InjectTraceContextAndConvertToMD(ctx)); err != nil {
 		span.RecordError(err)
 		return errors.Wrap(err, "SetMetadata")
 	}

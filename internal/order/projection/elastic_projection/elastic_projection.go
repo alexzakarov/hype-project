@@ -14,6 +14,7 @@ import (
 	"main/pkg/constants"
 	"main/pkg/es"
 	"main/pkg/logger"
+	"main/pkg/server/grpc"
 )
 
 type Worker func(ctx context.Context, t *trace.TracerProvider, stream *kurrentdb.PersistentSubscription, workerID int) error
@@ -74,6 +75,12 @@ func (o *ElasticProjection) ProcessEvents(ctx context.Context, t *trace.TracerPr
 		default:
 		}
 
+		var span otracer.Span
+
+		ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
+		tracer := t.Tracer("ElasticProjection ProcessEvents")
+		ctx, span = tracer.Start(ctx, "elasticProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
+
 		if event.SubscriptionDropped != nil {
 			o.log.Errorf("(SubscriptionDropped) err: {%v}", event.SubscriptionDropped.Error)
 			return errors.Wrap(event.SubscriptionDropped.Error, "Subscription Dropped")
@@ -99,6 +106,7 @@ func (o *ElasticProjection) ProcessEvents(ctx context.Context, t *trace.TracerPr
 			}
 			o.log.Infof("(ACK) event commit: {%v}", *event.EventAppeared.Event.Commit)
 		}
+		span.End()
 	}
 }
 

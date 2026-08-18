@@ -3,13 +3,12 @@ package aggregate
 import (
 	"context"
 	"github.com/kurrent-io/KurrentDB-Client-Go/kurrentdb"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
+	otracer "go.opentelemetry.io/otel/trace"
 	"main/internal/order/domain/models"
 	"main/pkg/es"
 	"strings"
-
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 func GetShopItemsTotalPrice(shopItems []*models.ShopItem) float64 {
@@ -30,9 +29,12 @@ func IsAggregateNotFound(aggregate es.Aggregate) bool {
 }
 
 func LoadOrderAggregate(ctx context.Context, t *trace.TracerProvider, eventStore es.AggregateStore, aggregateID string) (*OrderAggregate, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "LoadOrderAggregate")
-	defer span.Finish()
-	span.LogFields(log.String("AggregateID", aggregateID))
+	var span otracer.Span
+	tracer := t.Tracer("Utils LoadOrderAggregate")
+
+	ctx, span = tracer.Start(ctx, "utils.LoadOrderAggregate", otracer.WithSpanKind(otracer.SpanKindServer))
+	defer span.End()
+	span.SetAttributes(attribute.String("AggregateID", aggregateID))
 
 	order := NewOrderAggregateWithID(aggregateID)
 

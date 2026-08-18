@@ -1,4 +1,80 @@
+version: '3.8'
+
+x-logging:
+  &default-logging
+  driver: "json-file"
+  options:
+    max-size: "1m"
+    max-file: "1"
+    tag: "{{.Name}}"
+
 services:
+
+  # =========================================================
+  # SERVER 1 - MAIN APPLICATION
+  # =========================================================
+
+  server1:
+    platform: linux/amd64
+
+    build:
+      context: ./
+      dockerfile: Dockerfile
+
+    container_name: server1
+    restart: always
+
+    depends_on:
+
+      # PRIMARY DATABASE
+      postgresql:
+        condition: service_healthy
+
+      # MONGODB
+      mongodb:
+        condition: service_healthy
+
+      # EVENT STORE
+      kurrentdb.db:
+        condition: service_healthy
+
+      # ELASTICSEARCH
+      node01:
+        condition: service_healthy
+
+      # OBSERVABILITY
+      otel-collector:
+        condition: service_started
+
+    environment:
+      OTEL_ENDPOINT: otel-collector:4317
+
+      # PostgreSQL
+      ConnectionStrings__PostgreSQL: "Host=postgresql;Port=5432;Database=hype-project;Username=postgres;Password=123456"
+
+      # MongoDB
+      ConnectionStrings__MongoDB: "mongodb://admin:admin@mongodb:27017"
+
+      # KurrentDB
+      KurrentDB__ConnectionString: "esdb://kurrentdb.db:2113?tls=false"
+
+      # Elasticsearch
+      Elasticsearch__Url: "http://node01:9200"
+
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+
+    ports:
+      - "5010:5010"
+      - "5001:5001"
+      - "50051:50051"
+      - "8001:8001"
+
+    networks:
+      - microservices
+
+    logging: *default-logging
 
 
   # =========================================================
@@ -18,7 +94,6 @@ services:
       KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP: "true"
 
     ports:
-      # KurrentDB HTTP / gRPC
       - "2113:2113"
 
     volumes:
@@ -27,6 +102,61 @@ services:
 
     networks:
       - microservices
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:2113/health/live || exit 1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+    logging: *default-logging
+
+
+  # =========================================================
+  # POSTGRESQL - PRIMARY APPLICATION DATABASE
+  # =========================================================
+
+  postgresql:
+    image: postgres:16
+    container_name: postgresql
+    restart: always
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: hype-project
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+
+    networks:
+      - microservices
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d hype-project"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
 
   # =========================================================
@@ -52,13 +182,26 @@ services:
     networks:
       - microservices
 
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username admin --password admin --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    logging: *default-logging
+
 
   # =========================================================
   # ELASTICSEARCH
   # =========================================================
 
   node01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.29
     container_name: node01
     restart: always
 
@@ -82,13 +225,26 @@ services:
     networks:
       - microservices
 
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs http://localhost:9200/_cluster/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+    logging: *default-logging
+
 
   # =========================================================
   # KIBANA
   # =========================================================
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.11.1
+    image: docker.elastic.co/kibana/kibana:7.17.29
     container_name: kibana
     restart: always
 
@@ -96,13 +252,16 @@ services:
       ELASTICSEARCH_HOSTS: http://node01:9200
 
     depends_on:
-      - node01
+      node01:
+        condition: service_healthy
 
     ports:
       - "5601:5601"
 
     networks:
       - microservices
+
+    logging: *default-logging
 
 
   # =========================================================
@@ -121,14 +280,13 @@ services:
       - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
 
     ports:
-      # Host -> OTLP gRPC
       - "4320:4317"
-
-      # Host -> OTLP HTTP
       - "4321:4318"
 
     networks:
       - microservices
+
+    logging: *default-logging
 
 
   # =========================================================
@@ -148,23 +306,16 @@ services:
       - ./tempo-data:/var/tempo
 
     ports:
-      # Tempo HTTP API
       - "3200:3200"
-
-      # OTLP gRPC
       - "4317:4317"
-
-      # OTLP HTTP
       - "4318:4318"
-
-      # Jaeger HTTP
       - "14268:14268"
-
-      # Zipkin
       - "9411:9411"
 
     networks:
       - microservices
+
+    logging: *default-logging
 
 
   # =========================================================
@@ -191,6 +342,8 @@ services:
     networks:
       - microservices
 
+    logging: *default-logging
+
 
   # =========================================================
   # LOKI
@@ -210,6 +363,8 @@ services:
     networks:
       - microservices
 
+    logging: *default-logging
+
 
   # =========================================================
   # PROMTAIL
@@ -221,7 +376,8 @@ services:
     restart: always
 
     depends_on:
-      - loki
+      loki:
+        condition: service_started
 
     volumes:
       - ./promtail.yaml:/etc/promtail/docker-config.yaml:ro
@@ -234,6 +390,8 @@ services:
     networks:
       - microservices
 
+    logging: *default-logging
+
 
   # =========================================================
   # GRAFANA
@@ -245,9 +403,14 @@ services:
     restart: always
 
     depends_on:
-      - prometheus
-      - tempo
-      - loki
+      prometheus:
+        condition: service_started
+
+      tempo:
+        condition: service_started
+
+      loki:
+        condition: service_started
 
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
@@ -265,6 +428,8 @@ services:
     networks:
       - microservices
 
+    logging: *default-logging
+
 
   # =========================================================
   # NODE EXPORTER
@@ -281,10 +446,12 @@ services:
     networks:
       - microservices
 
+    logging: *default-logging
 
-# ===========================================================
+
+# =========================================================
 # VOLUMES
-# ===========================================================
+# =========================================================
 
 volumes:
 
@@ -300,10 +467,12 @@ volumes:
 
   grafana-data:
 
+  postgresql-data:
 
-# ===========================================================
+
+# =========================================================
 # NETWORK
-# ===========================================================
+# =========================================================
 
 networks:
 

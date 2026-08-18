@@ -15,7 +15,7 @@ func (h *OrderHandlers) MapRoutes(tracerMiddleware *trace.Middleware, router fib
 	core.Post("/cancel/:id", tracerMiddleware.Public(h.CancelOrder))
 	core.Post("/complete/:id", tracerMiddleware.Public(h.CompleteOrder))
 	core.Put("/address/:id", tracerMiddleware.Public(h.ChangeDeliveryAddress))
-	core.Get("/:id", tracerMiddleware.Public(h.GetOrderByID))
 	core.Get("/search", tracerMiddleware.Public(h.Search))
+	core.Get("/:id", tracerMiddleware.Public(h.GetOrderByID))
 	fmt.Println("Routes are done")
 }

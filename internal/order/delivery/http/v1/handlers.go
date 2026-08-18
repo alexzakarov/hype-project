@@ -78,17 +78,8 @@ func (h *OrderHandlers) CreateOrder(ctx *fiber.Ctx, t *trace.TracerProvider) err
 		return httpErrors.ErrorCtxResponse(ctx, err, h.cfg.Http.DebugErrorsResponse)
 	}
 
-	query := queries.NewGetOrderByIDQuery(id)
-	data, errQuery := h.os.Queries.GetOrderByID.Handle(userContext, t, query)
-	if errQuery != nil {
-		h.log.Errorf("(CreateOrder.Query.Handle) id: {%s}, err: {%v}", id, errQuery)
-		span.RecordError(errQuery)
-		return httpErrors.ErrorCtxResponse(ctx, errQuery, h.cfg.Http.DebugErrorsResponse)
-
-	}
-
 	h.log.Infof("(order created) id: {%s}", id)
-	return ctx.Status(http.StatusCreated).JSON(data)
+	return ctx.Status(http.StatusCreated).JSON(id)
 }
 
 // PayOrder

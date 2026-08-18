@@ -29,7 +29,6 @@ func NewCreateOrderHandler(log logger.Logger, cfg *config.Config, es es.Aggregat
 func (c *createOrderHandler) Handle(ctx context.Context, t *trace.TracerProvider, command *CreateOrderCommand) error {
 	var span otracer.Span
 	tracer := t.Tracer("createOrderHandler Handle")
-
 	ctx, span = tracer.Start(ctx, "createOrderHandler.Handle", otracer.WithSpanKind(otracer.SpanKindServer))
 	defer span.End()
 	span.SetAttributes(attribute.String("AggregateID", command.GetAggregateID()))

@@ -1,6 +1,7 @@
 serviceName: core_service
 appEnv: dev
 apiVersion: "api/v1"
+
 grpc:
   port: :5001
   development: true
@@ -30,7 +31,7 @@ logger:
   encoder: console
 
 postgres:
-  host: localhost
+  host: postgresql
   port: 5432
   user: postgres
   password: 123456
@@ -38,7 +39,7 @@ postgres:
   maxConnections: 1000
 
 mongo:
-  uri: "mongodb://localhost:27017"
+  uri: "mongodb://admin:admin@mongodb:27017/orders?authSource=admin"
   user: admin
   password: admin
   db: orders
@@ -46,7 +47,7 @@ mongo:
 mongoCollections:
   orders: orders
 eventStoreConfig:
-  connectionString: "esdb://localhost:2113?tls=false"
+  connectionString: "esdb://kurrentdb.db:2113?tls=false"
 
 subscriptions:
   poolSize: 60
@@ -55,7 +56,7 @@ subscriptions:
   elasticProjectionGroupName: "order-elastic"
 
 elastic:
-  url: "http://localhost:9200"
+  url: "http://node01:9200"
   sniff: false
   gzip: true
   explain: true

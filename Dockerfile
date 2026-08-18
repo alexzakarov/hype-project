@@ -6,6 +6,6 @@ COPY . .
 
 WORKDIR /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o s1 "./cmd"
+RUN CGO_ENABLED=0 GOOS=linux go build -o s1 "./cmd/main.go"
 
 CMD ["./s1"]

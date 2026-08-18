@@ -1,0 +1,34 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+bin/
+s1
+server1
+main
+
+# Environment & secrets
+.env
+.env.*
+*.env
+config/config.local.yaml
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+tempo-data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+*.tmp

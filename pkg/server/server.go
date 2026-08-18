@@ -9,9 +9,11 @@ import (
 	grpcOrder "main/internal/order/delivery/grpc"
 	v1 "main/internal/order/delivery/http/v1"
 	"main/internal/order/service"
+	"main/pkg/graceful_exit"
 	"main/pkg/logger"
 	"main/pkg/middlewares/trace"
 	"main/pkg/server/grpc"
+	"main/pkg/server/health_check"
 	server "main/pkg/server/http"
 	orderService "main/proto"
 )
@@ -32,40 +34,43 @@ type Handlers struct {
 
 // Server
 type Server struct {
-	cfg              *config.Config
-	ctx              *context.Context
-	logger           logger.Logger
-	tracerMiddleware *trace.Middleware
-	serverHttp       *server.ServerHttp
-	serverGrpc       *grpc.ServerGrpc
-	orderService     *service.OrderService
-	metrics          *metrics.ESMicroserviceMetrics
-	Handlers         Handlers
+	ctx               context.Context
+	cfg               *config.Config
+	logger            logger.Logger
+	tracerMiddleware  *trace.Middleware
+	serverHttp        *server.ServerHttp
+	serverGrpc        *grpc.ServerGrpc
+	serverHealthCheck *health_check.ServerHealthCheck
+	orderService      *service.OrderService
+	metrics           *metrics.ESMicroserviceMetrics
+	Handlers          Handlers
 }
 
 // NewServer constructor
 func NewServer(
+	ctx context.Context,
 	cfg *config.Config,
-	ctx *context.Context,
 	logger logger.Logger,
 	tracerMiddleware *trace.Middleware,
 	serverHttp *server.ServerHttp,
 	serverGrpc *grpc.ServerGrpc,
+	serverHealthCheck *health_check.ServerHealthCheck,
 	orderService *service.OrderService,
 	metrics *metrics.ESMicroserviceMetrics,
 	handlers Handlers,
 ) *Server {
 
 	return &Server{
-		cfg:              cfg,
-		ctx:              ctx,
-		logger:           logger,
-		tracerMiddleware: tracerMiddleware,
-		serverHttp:       serverHttp,
-		serverGrpc:       serverGrpc,
-		orderService:     orderService,
-		metrics:          metrics,
-		Handlers:         handlers,
+		cfg:               cfg,
+		ctx:               ctx,
+		logger:            logger,
+		tracerMiddleware:  tracerMiddleware,
+		serverHttp:        serverHttp,
+		serverGrpc:        serverGrpc,
+		serverHealthCheck: serverHealthCheck,
+		orderService:      orderService,
+		metrics:           metrics,
+		Handlers:          handlers,
 	}
 }
 
@@ -85,4 +90,10 @@ func (s *Server) ListenAll() {
 		reflection.Register(s.serverGrpc.Server)
 	}
 	go s.serverGrpc.Serve()
+
+	go s.serverHealthCheck.RunHealthCheck(s.ctx)
+	go s.serverHealthCheck.RunMetricsServer()
+
+	graceful_exit.TerminateApp(s.ctx)
+
 }

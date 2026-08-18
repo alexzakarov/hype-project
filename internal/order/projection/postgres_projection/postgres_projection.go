@@ -14,6 +14,7 @@ import (
 	"main/pkg/constants"
 	"main/pkg/es"
 	"main/pkg/logger"
+	"main/pkg/server/grpc"
 )
 
 type PostgresProjection struct {
@@ -65,12 +66,6 @@ func (o *PostgresProjection) runWorker(ctx context.Context, t *trace.TracerProvi
 }
 
 func (o *PostgresProjection) ProcessEvents(ctx context.Context, t *trace.TracerProvider, stream *kurrentdb.PersistentSubscription, workerID int) error {
-	var span otracer.Span
-	tracer := t.Tracer("PostgresProjection ProcessEvents")
-
-	ctx, span = tracer.Start(ctx, "postgresProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
-	defer span.End()
-
 	for {
 		event := stream.Recv()
 		select {
@@ -78,6 +73,11 @@ func (o *PostgresProjection) ProcessEvents(ctx context.Context, t *trace.TracerP
 			return ctx.Err()
 		default:
 		}
+		var span otracer.Span
+
+		ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
+		tracer := t.Tracer("PostgresProjection ProcessEvents")
+		ctx, span = tracer.Start(ctx, "postgresProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
 
 		if event.SubscriptionDropped != nil {
 			span.RecordError(event.SubscriptionDropped.Error)
@@ -107,6 +107,7 @@ func (o *PostgresProjection) ProcessEvents(ctx context.Context, t *trace.TracerP
 			}
 			o.log.Infof("(ACK) event commit: {%v}", *event.EventAppeared.Event.Commit)
 		}
+		span.End()
 	}
 }
 
