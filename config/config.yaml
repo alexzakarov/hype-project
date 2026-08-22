@@ -1,5 +1,5 @@
 serviceName: core_service
-appEnv: dev
+appEnv: prod
 apiVersion: "api/v1"
 
 grpc:
@@ -8,7 +8,7 @@ grpc:
 
 http:
   port: 5010
-  development: true
+  development: false
   basePath: /api/v1
   ordersPath: /api/v1/orders
   debugErrorsResponse: true
@@ -22,12 +22,12 @@ probes:
   port: :3001
   pprof: :6001
   prometheusPath: /metrics
-  prometheusPort: :8001
+  prometheusPort: :8002
   checkIntervalSeconds: 10
 
 logger:
-  level: debug
-  devMode: true
+  level: error
+  devMode: false
   encoder: console
 
 postgres:
@@ -46,8 +46,9 @@ mongo:
 
 mongoCollections:
   orders: orders
+
 eventStoreConfig:
-  connectionString: "esdb://kurrentdb.db:2113?tls=false"
+  connectionString: "esdb://kurrentdb.db:2113?tls=false&gossipTimeout=20"
 
 subscriptions:
   poolSize: 60

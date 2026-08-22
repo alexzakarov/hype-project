@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 	"github.com/kurrent-io/KurrentDB-Client-Go/kurrentdb"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/attribute"
@@ -103,8 +102,6 @@ func (a *AggregateStore) Save(ctx context.Context, t *trace.TracerProvider, aggr
 			span.RecordError(err)
 			return errors.Wrap(err, "db.AppendToStream")
 		}
-
-		fmt.Println("Stream appended")
 
 		a.log.Debugf("(Save) stream: {%+v}", appendStream)
 		return nil

@@ -73,7 +73,7 @@ func ExtractTraceContext(ctx context.Context) context.Context {
 func ExtractTraceContextFromEvent(ctx context.Context, event *kurrentdb.EventAppeared) context.Context {
 	md := metadata.New(nil)
 
-	if event == nil {
+	if event == nil || event.Event == nil || event.Event.Event == nil {
 		return ctx
 	}
 	errJsonParse := json.Unmarshal(event.Event.Event.UserMetadata, &md)

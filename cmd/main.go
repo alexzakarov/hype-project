@@ -28,10 +28,11 @@ import (
 )
 
 func main() {
+	env := os.Getenv("APP_ENV")
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	cfg, err := config.InitConfig()
+	cfg, err := config.InitConfig(env)
 	if err != nil {
 		log.Fatal(err)
 	}

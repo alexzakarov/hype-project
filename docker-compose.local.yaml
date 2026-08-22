@@ -56,7 +56,7 @@ services:
       ConnectionStrings__MongoDB: "mongodb://admin:admin@mongodb:27017"
 
       # KurrentDB
-      KurrentDB__ConnectionString: "esdb://kurrentdb.db:2113?tls=false"
+      KurrentDB__ConnectionString: "esdb://kurrentdb.db:2113?tls=false&gossipTimeout=20"
 
       # Elasticsearch
       Elasticsearch__Url: "http://node01:9200"

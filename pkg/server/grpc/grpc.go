@@ -68,8 +68,9 @@ func NewGrpcServer(port string) *ServerGrpc {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+	grpc.MaxCallRecvMsgSize(2 * 1024 * 1024 * 1024)
 	s := grpc.NewServer(
-		grpc.MaxRecvMsgSize(1*10000000000),
+		grpc.MaxRecvMsgSize(5*1024*1024*1024),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle: maxConnectionIdle * time.Minute,
 			Timeout:           gRPCTimeout * time.Second,

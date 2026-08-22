@@ -42,7 +42,9 @@ func NewHttpServer(cfg *config.Config, logger logger.Logger) *ServerHttp {
 	})
 
 	server.Use(cors.New())
-	server.Use(mw_logger.New())
+	if cfg.AppEnv == "dev" {
+		server.Use(mw_logger.New())
+	}
 
 	docs.SwaggerInfo.Version = "1.0"
 	docs.SwaggerInfo.Title = "EventSourcing Microservice"

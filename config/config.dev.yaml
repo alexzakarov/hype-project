@@ -1,0 +1,72 @@
+serviceName: core_service
+appEnv: dev
+apiVersion: "api/v1"
+
+grpc:
+  port: :5002
+  development: true
+
+http:
+  port: 5011
+  development: true
+  basePath: /api/v1
+  ordersPath: /api/v1/orders
+  debugErrorsResponse: true
+  ignoreLogUrls: [ "metrics" ]
+  sslCertPath: ""
+  sslCertKey: ""
+
+probes:
+  readinessPath: /ready
+  livenessPath: /live
+  port: :3001
+  pprof: :6001
+  prometheusPath: /metrics
+  prometheusPort: :8002
+  checkIntervalSeconds: 10
+
+logger:
+  level: debug
+  devMode: true
+  encoder: console
+
+postgres:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: 123456
+  defaultDb: hype-project
+  maxConnections: 1000
+
+mongo:
+  uri: "mongodb://admin:admin@localhost:27017/orders?authSource=admin"
+  user: admin
+  password: admin
+  db: orders
+
+mongoCollections:
+  orders: orders
+eventStoreConfig:
+  connectionString: "esdb://localhost:2113?tls=false&gossipTimeout=20"
+
+subscriptions:
+  poolSize: 100000
+  orderPrefix: "order-"
+  postgresProjectionGroupName: "order1"
+  elasticProjectionGroupName: "order-elastic"
+
+elastic:
+  url: "http://localhost:9200"
+  sniff: false
+  gzip: true
+  explain: true
+  fetchSource: true
+  version: true
+  pretty: true
+
+elasticIndexes:
+  orders: "orders"
+
+otelCollector:
+  Host: "localhost"
+  Port: "4320"

@@ -57,6 +57,25 @@ func (o *ElasticProjection) Subscribe(ctx context.Context, t *trace.TracerProvid
 		g.Go(o.runWorker(ctx, t, worker, stream, i))
 	}
 	return g.Wait()
+	/*
+		g, ctx := errgroup.WithContext(ctx)
+		for i := 0; i <= poolSize; i++ {
+			stream, err := o.db.SubscribeToPersistentSubscriptionToAll(
+				ctx,
+				o.cfg.Subscriptions.ElasticProjectionGroupName,
+				kurrentdb.SubscribeToPersistentSubscriptionOptions{},
+			)
+			if err != nil {
+				return err
+			}
+			g.Go(func() error {
+				defer stream.Close()
+				return worker(ctx, t, stream, i)
+			})
+		}
+
+		return g.Wait()
+	*/
 }
 
 func (o *ElasticProjection) runWorker(ctx context.Context, t *trace.TracerProvider, worker Worker, stream *kurrentdb.PersistentSubscription, i int) func() error {
@@ -73,20 +92,22 @@ func (o *ElasticProjection) ProcessEvents(ctx context.Context, t *trace.TracerPr
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-		}
 
-		var span otracer.Span
+			if event.SubscriptionDropped != nil {
+				o.log.Errorf("(SubscriptionDropped) err: {%v}", event.SubscriptionDropped.Error)
+				return errors.Wrap(event.SubscriptionDropped.Error, "Subscription Dropped")
+			}
 
-		ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
-		tracer := t.Tracer("ElasticProjection ProcessEvents")
-		ctx, span = tracer.Start(ctx, "elasticProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
+			if event.EventAppeared == nil {
+				continue
+			}
 
-		if event.SubscriptionDropped != nil {
-			o.log.Errorf("(SubscriptionDropped) err: {%v}", event.SubscriptionDropped.Error)
-			return errors.Wrap(event.SubscriptionDropped.Error, "Subscription Dropped")
-		}
+			var span otracer.Span
 
-		if event.EventAppeared != nil {
+			ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
+			tracer := t.Tracer("ElasticProjection ProcessEvents")
+			ctx, span = tracer.Start(ctx, "elasticProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
+
 			o.log.ProjectionEvent(constants.ElasticProjection, o.cfg.Subscriptions.ElasticProjectionGroupName, event.EventAppeared.Event, workerID)
 
 			err := o.When(ctx, t, es.NewEventFromRecorded(event.EventAppeared.Event.Event))
@@ -105,8 +126,8 @@ func (o *ElasticProjection) ProcessEvents(ctx context.Context, t *trace.TracerPr
 				return errors.Wrap(err, "stream.Ack")
 			}
 			o.log.Infof("(ACK) event commit: {%v}", *event.EventAppeared.Event.Commit)
+			span.End()
 		}
-		span.End()
 	}
 }
 

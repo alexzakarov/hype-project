@@ -57,6 +57,24 @@ func (o *PostgresProjection) Subscribe(ctx context.Context, t *trace.TracerProvi
 		g.Go(o.runWorker(ctx, t, worker, stream, i))
 	}
 	return g.Wait()
+
+	/*
+		g, ctx := errgroup.WithContext(ctx)
+		for i := 0; i <= poolSize; i++ {
+			stream, err := o.db.SubscribeToPersistentSubscriptionToAll(
+				ctx,
+				o.cfg.Subscriptions.PostgresProjectionGroupName,
+				kurrentdb.SubscribeToPersistentSubscriptionOptions{},
+			)
+			if err != nil {
+				return err
+			}
+			g.Go(func() error {
+				defer stream.Close()
+				return worker(ctx, t, stream, i)
+			})
+		}
+	*/
 }
 
 func (o *PostgresProjection) runWorker(ctx context.Context, t *trace.TracerProvider, worker Worker, stream *kurrentdb.PersistentSubscription, i int) func() error {
@@ -72,25 +90,27 @@ func (o *PostgresProjection) ProcessEvents(ctx context.Context, t *trace.TracerP
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-		}
-		var span otracer.Span
 
-		ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
-		tracer := t.Tracer("PostgresProjection ProcessEvents")
-		ctx, span = tracer.Start(ctx, "postgresProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
+			if event.SubscriptionDropped != nil {
+				o.log.Errorf("(SubscriptionDropped) err: {%v}", event.SubscriptionDropped.Error)
+				return errors.Wrap(event.SubscriptionDropped.Error, "Subscription Dropped")
+			}
 
-		if event.SubscriptionDropped != nil {
-			span.RecordError(event.SubscriptionDropped.Error)
-			o.log.Errorf("(SubscriptionDropped) err: {%v}", event.SubscriptionDropped.Error)
-			return errors.Wrap(event.SubscriptionDropped.Error, "Subscription Dropped")
-		}
+			if event.EventAppeared == nil {
+				continue
+			}
 
-		if event.EventAppeared != nil {
+			var span otracer.Span
+
+			ctx = grpc.ExtractTraceContextFromEvent(ctx, event.EventAppeared)
+			tracer := t.Tracer("PostgresProjection ProcessEvents")
+			ctx, span = tracer.Start(ctx, "postgresProjection.ProcessEvents", otracer.WithSpanKind(otracer.SpanKindServer))
+
 			o.log.ProjectionEvent(constants.PostgresProjection, o.cfg.Subscriptions.PostgresProjectionGroupName, event.EventAppeared.Event, workerID)
 
 			err := o.When(ctx, t, es.NewEventFromRecorded(event.EventAppeared.Event.Event))
 			if err != nil {
-				span.RecordError(event.SubscriptionDropped.Error)
+				//span.RecordError(event.SubscriptionDropped.Error)
 				o.log.Errorf("(mongoProjection.when) err: {%v}", err)
 
 				if err := stream.Nack(err.Error(), kurrentdb.NackActionRetry, event.EventAppeared.Event); err != nil {
@@ -101,13 +121,13 @@ func (o *PostgresProjection) ProcessEvents(ctx context.Context, t *trace.TracerP
 
 			err = stream.Ack(event.EventAppeared.Event)
 			if err != nil {
-				span.RecordError(event.SubscriptionDropped.Error)
+				//span.RecordError(event.SubscriptionDropped.Error)
 				o.log.Errorf("(stream.Ack) err: {%v}", err)
 				return errors.Wrap(err, "stream.Ack")
 			}
 			o.log.Infof("(ACK) event commit: {%v}", *event.EventAppeared.Event.Commit)
+			span.End()
 		}
-		span.End()
 	}
 }
 

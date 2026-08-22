@@ -27,7 +27,7 @@ require (
 	go.uber.org/zap v1.20.0
 	golang.org/x/sync v0.22.0
 	google.golang.org/grpc v1.83.0
-	google.golang.org/protobuf v1.36.12
+	google.golang.org/protobuf v1.36.11
 )
 
 require (

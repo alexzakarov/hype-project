@@ -1,4 +1,4 @@
-# Core Service — Event Sourcing & CQRS Order Microservice
+# Hype Project — Event Sourcing & CQRS Order Microservice Boiler-Plate
 
 Go tabanlı, **Event Sourcing + CQRS + DDD** mimarisiyle tasarlanmış sipariş (order) mikroservisi. Yazma tarafı komutlar ile **KurrentDB** (Event StoreDB) üzerine domain event'leri yazar; okuma tarafında **PostgreSQL** ve **Elasticsearch** olmak üzere iki ayrı read model, persistent subscription'lar üzerinden asenkron olarak güncellenir.
 
@@ -11,50 +11,6 @@ Go tabanlı, **Event Sourcing + CQRS + DDD** mimarisiyle tasarlanmış sipariş 
 - **Uçtan uca OpenTelemetry tracing**: HTTP → komut handler → aggregate → event store → projeksiyon zincirinde trace context event metadata üzerinden taşınır
 - **Çift transport**: Aynı handler'lar hem REST (Fiber) hem gRPC üzerinden sunulur (Swagger dahil)
 - **Kapsamlı observability**: Tempo (traces), Prometheus (metrics), Loki + Promtail (logs), Grafana (dashboard)
-
-## Mimari
-
-```
-                    ┌─────────────────────────────────────────────────┐
-                    │                  Clients                        │
-                    └──────────────┬──────────────────┬───────────────┘
-                                   │                  │
-                         HTTP :5010 │                  │ gRPC :5001
-                                   ▼                  ▼
-                    ┌─────────────────────────────────────────────┐
-                    │        OrderHandlers (Fiber)   OrderGrpc    │
-                    └─────────────────────┬───────────────────────┘
-                                          │
-                    ┌─────────────────────▼───────────────────────┐
-                    │  OrderCommands (write)   OrderQueries (read)│
-                    └──────┬───────────────────────┬──────────────┘
-                           │                       │
-              Handle + Apply                        │
-                           ▼                       │
-              ┌───────────────────────┐            │
-              │  OrderAggregate       │            │
-              │  (state machine)      │            │
-              └──────────┬────────────┘            │
-                         │ append                   │
-                         ▼                          │
-              ┌───────────────────────┐             │
-              │  KurrentDB            │             │
-              │  streams: order-{id}  │             │
-              └──────────┬────────────┘             │
-                         │ persistent subscriptions │
-                         ▼ (fan-out)                │
-   ┌────────────────────────┴──────────────────┐    │
-   ▼                                           ▼    │
-┌──────────────┐                      ┌───────────────────┐
-│  Postgres    │                      │  Elasticsearch    │
-│  projection  │                      │  projection       │
-└──────┬───────┘                      └─────────┬─────────┘
-       │ GetById / GetAll                        │ Search / GetByID
-       ▼                                         ▼
-  ┌───────────────────────────────────────────────────────┐
-  │         OrderQueries (read models)                    │
-  └───────────────────────────────────────────────────────┘
-```
 
 ## Teknoloji Stack
 
@@ -210,15 +166,3 @@ Event tipleri: `V1_ORDER_CREATED`, `V1_ORDER_PAID`, `V1_ORDER_SUBMITTED`, `V1_OR
 
 - `/ready` (readiness) — PostgreSQL + Elasticsearch ping | port `:3001`
 - `/live` (liveness) — port `:3001`
-
-## Bilinen Eksikler / TODO'lar
-
-- `PostgresRepository`'de `UpdateOrder`, `UpdateCancel`, `UpdatePayment`, `Complete`, `UpdateDeliveryAddress`, `UpdateSubmit`, `Delete` yöntemleri `panic("implement me")` — yalnızca `Create` ve `GetById` çalışır
-- `public.orders` tablosu için migration dosyaları yok
-- Swagger: `GET /orders/search` rotası `/:id` rotasından sonra kayıtlı olduğundan Fiber'de çakışma riski var
-- Bazı handler'lar query parametrelerini `ctx.Query` yerine `ctx.Params` ile okuyor
-- gRPC `Search` RPC'i yanlış metrik counter'ı artırıyor
-- Doğrulama (`validator`) handler'larda yorum satırına alınmış
-- `mongo` config anahtarları ve bağımlılıkları (template kalıntısı) kullanılmıyor
-- `tempo-data/` runtime dosyaları repoya commit edilmiş durumda — `.gitignore`'a eklenmeli
-- Test dosyaları yok (yalnızca `go-sqlmock` bağımlılığı mevcut)

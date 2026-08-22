@@ -40,7 +40,6 @@ func (p PostgresRepository) GetAll(ctx context.Context, provider *trace.TracerPr
 func (p PostgresRepository) Create(ctx context.Context, provider *trace.TracerProvider, projection *models.OrderProjection) (string, error) {
 	var errDb error
 	var query string
-	fmt.Println("Saving Order ID: ", projection.OrderID)
 	query = `INSERT INTO public.orders (id, account_email) VALUES (trim($1),$2)`
 	_, errDb = p.db.Exec(ctx, query, projection.OrderID, projection.AccountEmail)
 	return projection.ID, errDb
