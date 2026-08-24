@@ -1,4 +1,4 @@
-# Hype Project — Event Sourcing & CQRS Order Microservice Boiler-Plate
+# Hype Project — Event Sourcing & CQRS Microservice Boiler-Plate
 
 Go tabanlı, **Event Sourcing + CQRS + DDD** mimarisiyle tasarlanmış sipariş (order) mikroservisi. Yazma tarafı komutlar ile **KurrentDB** (Event StoreDB) üzerine domain event'leri yazar; okuma tarafında **PostgreSQL** ve **Elasticsearch** olmak üzere iki ayrı read model, persistent subscription'lar üzerinden asenkron olarak güncellenir.
 
