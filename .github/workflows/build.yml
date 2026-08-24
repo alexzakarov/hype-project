@@ -1,0 +1,85 @@
+name: build (prod)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*", "v*.*.*-*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Manuel versiyon tag (örn: v1.2.3)"
+        required: false
+        type: string
+
+env:
+  APP_ENV: prod
+  GO_VERSION: "1.25"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/alexzakarov/hype-project/core-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
+
+      - name: Go build (APP_ENV=prod)
+        env:
+          APP_ENV: prod
+        run: |
+          go vet ./...
+          CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /tmp/core-service "./cmd/main.go"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
+            type=sha,prefix=prod-,format=short,enable={{is_default_branch}}
+            type=raw,value=prod-${{ github.run_number }},enable={{is_default_branch}}
+            type=sha,prefix=pr-,format=short,enable=${{ github.event_name == 'pull_request' }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: APP_ENV=prod
+          provenance: false
+
+      - run: echo "${{ steps.meta.outputs.tags }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-service-${{ steps.meta.outputs.version }}-linux-amd64
+          path: /tmp/core-service
+          retention-days: 14

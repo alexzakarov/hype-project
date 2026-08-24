@@ -32,7 +32,6 @@ func InitTracer(serviceName string, endpoint string) (func(), *trace.TracerProvi
 	)
 	if err != nil {
 		panic(err)
-		return nil, nil
 	}
 	trace.WithResource(res)
 
