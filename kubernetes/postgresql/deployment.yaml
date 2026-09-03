@@ -45,7 +45,7 @@ spec:
 
   volumeClaimTemplates:
     - metadata:
-        name: postgres-storage
+        name: postgres-pvc
       spec:
         accessModes:
           - ReadWriteOnce
