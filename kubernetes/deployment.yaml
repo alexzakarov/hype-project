@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-service-deployment
+  labels:
+    app: core-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: core-service
+  template:
+    metadata:
+      labels:
+        app: core-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: core-service-container
+          image: ghcr.io/alexzakarov/hype-project/core-service:prod-dc5a369
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5010
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
