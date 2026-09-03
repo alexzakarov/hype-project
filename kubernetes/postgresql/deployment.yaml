@@ -42,14 +42,3 @@ spec:
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
-
-  volumeClaimTemplates:
-    - metadata:
-        name: postgres-storage
-      spec:
-        accessModes:
-          - ReadWriteOnce
-
-        resources:
-          requests:
-            storage: 10Gi
