@@ -33,9 +33,9 @@ logger:
 postgres:
   host: postgres-servis.default.svc.cluster.local
   port: 5432
-  user: postgres
+  user: hypeuser
   password: ${POSTGRES_PASSWORD}
-  defaultDb: postgres
+  defaultDb: hypedb
   maxConnections: 1000
 
 mongo:
