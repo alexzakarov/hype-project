@@ -1,4 +1,4 @@
-name: build (prod)
+name: build (dev)
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
         type: string
 
 env:
-  APP_ENV: prod
+  APP_ENV: dev
   GO_VERSION: "1.25"
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/alexzakarov/hype-project/core-service
@@ -59,8 +59,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
-            type=sha,prefix=prod-,format=short,enable={{is_default_branch}}
-            type=raw,value=prod-${{ github.run_number }},enable={{is_default_branch}}
+            type=sha,prefix=dev-,format=short,enable={{is_default_branch}}
+            type=raw,value=dev-${{ github.run_number }},enable={{is_default_branch}}
             type=sha,prefix=pr-,format=short,enable=${{ github.event_name == 'pull_request' }}
 
       - uses: docker/build-push-action@v6
