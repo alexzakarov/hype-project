@@ -1,39 +1,55 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: postgres-deployment
+  name: postgres
   labels:
     app: postgres
 spec:
+  serviceName: postgres-servis
   replicas: 1
+
   selector:
     matchLabels:
       app: postgres
+
   template:
     metadata:
       labels:
         app: postgres
+
     spec:
       containers:
         - name: postgres
           image: postgres:17-alpine
+
           env:
             - name: POSTGRES_DB
               value: hypedb
+
             - name: POSTGRES_USER
               value: hypeuser
+
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
                   key: postgres-password
+
           ports:
             - containerPort: 5432
               name: postgres
+
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-storage
-          persistentVolumeClaim:
-            claimName: postgres-pvc
+
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+
+        resources:
+          requests:
+            storage: 10Gi
