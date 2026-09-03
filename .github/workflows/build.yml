@@ -33,9 +33,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: go.sum
 
-      - name: Go build (APP_ENV=prod)
+      - name: Go build (APP_ENV=dev)
         env:
-          APP_ENV: prod
+          APP_ENV: dev
         run: |
           go vet ./...
           CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /tmp/core-service "./cmd/main.go"
@@ -73,7 +73,7 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: APP_ENV=prod
+          build-args: APP_ENV=dev
           provenance: false
 
       - run: echo "${{ steps.meta.outputs.tags }}"

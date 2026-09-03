@@ -83,6 +83,9 @@ type OtelCollector struct {
 }
 
 func InitConfig(env string) (*Config, error) {
+	if env == "" {
+		return nil, errors.New("env required")
+	}
 	if configPath == "" {
 		configPathFromEnv := os.Getenv(constants.ConfigPath)
 		if configPathFromEnv != "" {
@@ -92,7 +95,7 @@ func InitConfig(env string) (*Config, error) {
 			if err != nil {
 				return nil, errors.Wrap(err, "os.Getwd")
 			}
-			configPath = fmt.Sprintf("%s/config/config%s.yaml", getwd, env)
+			configPath = fmt.Sprintf("%s/config/config.%s.yaml", getwd, env)
 			fmt.Println(configPath)
 		}
 	}
