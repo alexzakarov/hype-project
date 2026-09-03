@@ -29,3 +29,9 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-password

@@ -31,11 +31,11 @@ logger:
   encoder: console
 
 postgres:
-  host: localhost
+  host: postgres-servis.default.svc.cluster.local
   port: 5432
   user: postgres
-  password: 123456
-  defaultDb: hype-project
+  password: ${POSTGRES_PASSWORD}
+  defaultDb: postgres
   maxConnections: 1000
 
 mongo:
