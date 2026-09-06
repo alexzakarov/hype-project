@@ -24,10 +24,10 @@ spec:
             - containerPort: 5010
           resources:
             requests:
-              memory: "256Mi"
+              memory: "512Mi"
               cpu: "250m"
             limits:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "500m"
           env:
             - name: POSTGRES_PASSWORD
