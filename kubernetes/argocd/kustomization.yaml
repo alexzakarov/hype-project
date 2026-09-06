@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# ArgoCD resmi install manifestini remote base olarak çeker
+# kubectl apply -k kubernetes/argocd  -> önce namespace, sonra ArgoCD kurulumu
+resources:
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  - application.yaml
+  - ingress.yaml

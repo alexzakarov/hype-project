@@ -1,0 +1,123 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: hype-project
+  namespace: argocd
+spec:
+  description: hype-project core-service
+  sourceRepos:
+    - https://github.com/alexzakarov/hype-project
+    - https://github.com/anomalyco/hype-project # fork ise burayı sil
+  destinations:
+    - namespace: default
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: ""
+      kind: PersistentVolume
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: apps
+      kind: "*"
+    - group: networking.k8s.io
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: core-service
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: hype-project
+  source:
+    repoURL: https://github.com/alexzakarov/hype-project
+    targetRevision: main
+    path: core-service/kubernetes
+    # Helm/Kustomize kullanıyorsan:
+    # helm:
+    #   valueFiles:
+    #     - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  # Optional: directory recurse
+  # source:
+  #   directory:
+  #     recurse: true
+---
+# İstersen infra'yı ayrı Application'lara böl (önerilir):
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: core-service-infra
+  namespace: argocd
+spec:
+  project: hype-project
+  source:
+    repoURL: https://github.com/alexzakarov/hype-project
+    targetRevision: main
+    path: core-service/kubernetes/postgresql
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false # PV/PVC yanlışlıkla silinmesin
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: core-service-kurrentdb
+  namespace: argocd
+spec:
+  project: hype-project
+  source:
+    repoURL: https://github.com/alexzakarov/hype-project
+    targetRevision: main
+    path: core-service/kubernetes/kurrentdb
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: core-service-elasticsearch
+  namespace: argocd
+spec:
+  project: hype-project
+  source:
+    repoURL: https://github.com/alexzakarov/hype-project
+    targetRevision: main
+    path: core-service/kubernetes/elasticsearch
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
