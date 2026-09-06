@@ -56,7 +56,7 @@ subscriptions:
   elasticProjectionGroupName: "order-elastic"
 
 elastic:
-  url: "http://localhost:9200"
+  url: "http://elasticsearch-service.default.svc.cluster.local:9200"
   sniff: false
   gzip: true
   explain: true
