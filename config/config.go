@@ -121,9 +121,11 @@ func InitConfig(env string) (*Config, error) {
 	if eventStoreConnectionString != "" {
 		cfg.EventStoreConfig.ConnectionString = eventStoreConnectionString
 	}
-	elasticUrl := os.Getenv(constants.ElasticUrl)
-	if elasticUrl != "" {
+	if elasticUrl := os.Getenv(constants.ElasticUrl); elasticUrl != "" {
 		cfg.Elastic.URL = elasticUrl
+	}
+	if postgresPass := os.Getenv(constants.PostgresDbPASS); postgresPass != "" {
+		cfg.Postgres.Password = postgresPass
 	}
 
 	return cfg, nil

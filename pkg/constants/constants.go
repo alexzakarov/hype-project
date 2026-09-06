@@ -13,7 +13,7 @@ const (
 	PostgresDbHOST             = "POSTGRES_HOST"
 	PostgresDbPORT             = "POSTGRES_PORT"
 	PostgresDbUSER             = "POSTGRES_USER"
-	PostgresDbPASS             = "POSTGRES_PASS"
+	PostgresDbPASS             = "POSTGRES_PASSWORD"
 	PostgresDbDEFAULT_DB       = "POSTGRES_DEFAULT_DB"
 	PostgresDbMAX_CONN         = "POSTGRES_MAX_CONN"
 	ReaderServicePort          = "READER_SERVICE"
