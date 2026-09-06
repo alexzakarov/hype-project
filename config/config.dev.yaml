@@ -47,7 +47,7 @@ mongo:
 mongoCollections:
   orders: orders
 eventStoreConfig:
-  connectionString: "esdb://localhost:2113?tls=false&gossipTimeout=20"
+  connectionString: "esdb://kurrentdb-service.default.svc.cluster.local:2113?tls=false"
 
 subscriptions:
   poolSize: 100000

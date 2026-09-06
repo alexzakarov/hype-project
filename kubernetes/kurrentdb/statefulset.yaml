@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kurrentdb
+  labels:
+    app: kurrentdb
+spec:
+  serviceName: kurrentdb
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app: kurrentdb
+  template:
+    metadata:
+      labels:
+        app: kurrentdb
+    spec:
+      containers:
+        - name: kurrentdb
+          image: docker.kurrent.io/kurrent-latest/kurrentdb:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 2113
+              name: http
+              protocol: TCP
+            - containerPort: 1113
+              name: tcp
+              protocol: TCP
+          env:
+            - name: KURRENTDB_CLUSTER_SIZE
+              value: "1"
+            - name: KURRENTDB_RUN_PROJECTIONS
+              value: "All"
+            - name: KURRENTDB_START_STANDARD_PROJECTIONS
+              value: "true"
+            - name: KURRENTDB_INSECURE
+              value: "true"
+            - name: KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP
+              value: "true"
+            # Optional: explicit DB/log paths (defaults: /var/lib/kurrentdb, /var/log/kurrentdb)
+            - name: KURRENTDB_DB
+              value: "/var/lib/kurrentdb"
+            - name: KURRENTDB_LOG
+              value: "/var/log/kurrentdb"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: kurrentdb-data
+              mountPath: /var/lib/kurrentdb
+            - name: kurrentdb-logs
+              mountPath: /var/log/kurrentdb
+          readinessProbe:
+            httpGet:
+              path: /health/live
+              port: 2113
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 2113
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: 2113
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+  volumeClaimTemplates:
+    - metadata:
+        name: kurrentdb-data
+        labels:
+          app: kurrentdb
+      spec:
+        storageClassName: manual
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: kurrentdb-logs
+        labels:
+          app: kurrentdb
+      spec:
+        storageClassName: manual
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
