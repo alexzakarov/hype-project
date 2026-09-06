@@ -16,6 +16,19 @@ spec:
       labels:
         app: kurrentdb
     spec:
+      enableServiceLinks: false
+      # KurrentDB data dir must be writable by uid 1000 (kurrentdb user inside image)
+      initContainers:
+        - name: fix-perms
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 1000:1000 /var/lib/kurrentdb /var/log/kurrentdb || true; chmod -R 755 /var/lib/kurrentdb /var/log/kurrentdb || true"]
+          volumeMounts:
+            - name: kurrentdb-data
+              mountPath: /var/lib/kurrentdb
+            - name: kurrentdb-logs
+              mountPath: /var/log/kurrentdb
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: kurrentdb
           image: docker.kurrent.io/kurrent-latest/kurrentdb:latest
@@ -28,6 +41,8 @@ spec:
               name: tcp
               protocol: TCP
           env:
+            - name: KURRENTDB_ALLOW_UNKNOWN_OPTIONS
+              value: "true"
             - name: KURRENTDB_CLUSTER_SIZE
               value: "1"
             - name: KURRENTDB_RUN_PROJECTIONS
@@ -38,11 +53,18 @@ spec:
               value: "true"
             - name: KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP
               value: "true"
-            # Optional: explicit DB/log paths (defaults: /var/lib/kurrentdb, /var/log/kurrentdb)
+            - name: KURRENTDB_DISABLE_FIRST_LEVEL_HTTP_AUTHORIZATION
+              value: "true"
+            # Explicit DB/log paths (must match volumeMounts)
             - name: KURRENTDB_DB
               value: "/var/lib/kurrentdb"
             - name: KURRENTDB_LOG
               value: "/var/log/kurrentdb"
+            # K8s env: advertise pod IP to clients, avoid gossip mis-routing
+            - name: KURRENTDB_ADVERTISE_HOST_TO_CLIENT_AS
+              value: "kurrentdb-0.kurrentdb.default.svc.cluster.local"
+            - name: KURRENTDB_ADVERTISE_HTTP_PORT_TO_CLIENT_AS
+              value: "2113"
           resources:
             requests:
               memory: "512Mi"
@@ -87,7 +109,11 @@ spec:
         labels:
           app: kurrentdb
       spec:
-        storageClassName: manual
+        # Use cluster's default StorageClass for dynamic provisioning.
+        # For kind/minikube: local-path / standard / hostpath
+        # For cloud: gp2, standard, managed-premium etc.
+        # Keep `manual` only if you created PVs in pv.yaml and hostPath dirs exist.
+        # storageClassName: manual
         accessModes:
           - ReadWriteOnce
         resources:
@@ -98,7 +124,7 @@ spec:
         labels:
           app: kurrentdb
       spec:
-        storageClassName: manual
+        # storageClassName: manual
         accessModes:
           - ReadWriteOnce
         resources:
