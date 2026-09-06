@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data-elasticsearch-0
+  labels:
+    app: elasticsearch
+spec:
+  # This PVC is for manual binding to elasticsearch-pv when using storageClassName: manual.
+  # When using StatefulSet volumeClaimTemplates, the PVC is auto-created as:
+  #   elasticsearch-data-elasticsearch-0
+  # This file is useful for static provisioning / initial bootstrap.
+  # For dynamic provisioning, uncomment storageClassName: standard / gp2 etc.
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # selector:
+  #   matchLabels:
+  #     type: local
